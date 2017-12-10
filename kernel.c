@@ -140,16 +140,32 @@ void uart_puts(const char* str)
 #if defined(__cplusplus)
 extern "C" /* Use C linkage for kernel_main. */
 #endif
+void sw_irq(uint32_t r0)
+{
+    uart_init();
+    uart_puts("swi");
+    uart_putc((unsigned char)r0);
+}
+
 void kernel_main(uint32_t r0, uint32_t r1, uint32_t atags)
 {
     // Declare as unused
     (void) r0;
     (void) r1;
     (void) atags;
+    unsigned char c;
  
     uart_init();
     uart_puts("Hello, kernel World!\r\n");
  
     while (1)
-        uart_putc(uart_getc());
+    {
+        c = uart_getc();
+        if (c == '1')
+        {
+            asm("swi #0");
+        }
+
+        uart_putc(c);
+    }
 }

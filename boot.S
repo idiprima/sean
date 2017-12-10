@@ -1,9 +1,15 @@
+.data
+.equ UART0_BASE, 0x3F201000
+ 
+FIQMsg:
+.asciz "FIQ triggered"
+IRQMsg:
+.asciz "IRQ triggered"
 // To keep this in the first portion of the binary.
 .section ".text.boot"
  
 // Make _start global.
 .globl _start
- 
 // Entry point for the kernel.
 // r15 -> should begin execution at 0x00000000.
 // r0 -> 0x00000000
@@ -11,37 +17,54 @@
 // r2 -> 0x00000100 - start of ATAGS
 // preserve these registers as argument for kernel_main
 _start:
-        b Reset_Handler
-        b Undefined_Handler
-        b SWI_Handler
-        b Prefetch_Handler
-        b Abort_Handler
-        NOP                             // Reserved vector
-        b IRQ_Handler
-        b FIQ_Handler
+    ldr pc,=Reset_Handler
+    ldr pc,=Undefined_Handler
+    ldr pc,=SWI_Handler
+    ldr pc,=Prefetch_Handler
+    ldr pc,=Abort_Handler
+    NOP                             // Reserved vector
+    ldr pc,=IRQ_Handler
+    //FIQ handler ideally here so that can be serviced quicker avoiding a jump
+FIQ_Handler:
+    //print out message
+    ldr r5, =UART0_BASE
+    ldr r6, =FIQMsg
+morechar1:
+    ldr r7, [r6]
+    cmp r7, #0
+    beq lastchar1
+    str r7, [r5]
+    add r6, r6, #1
+waitchar1:
+    ldr r7, [r5, #0x18]
+    and r7, #0x40
+    bne waitchar1
+    b   morechar1
+lastchar1:
+    SUBS PC, R14, #4 //return
 
 Reset_Handler:        
     // Setup the stack.
     mov sp, #0x8000
  
 
-    // Clear out bss.
+    // Zero out bss.
     ldr r4, =__bss_start
     ldr r9, =__bss_end
     mov r5, #0
     mov r6, #0
     mov r7, #0
     mov r8, #0
-    b       2f
+    b   done
  
-1:
+clear:
     // store multiple at r4.
     stmia r4!, {r5-r8}
  
     // If we are still below bss_end, loop.
-2:
+done:
     cmp r4, r9
-    blo 1b
+    blo clear
  
     // Call kernel_main
     ldr r3, =kernel_main
@@ -52,20 +75,35 @@ Reset_Handler:
 
 Undefined_Handler:
         B       Undefined_Handler
+
 SWI_Handler:
-        B       SWI_Handler
+    mov r0, #0x21
+    //ldr r2, =sw_irq
+    blx sw_irq
+    MOVS PC,R14
+
 Prefetch_Handler:
         B       Prefetch_Handler
 Abort_Handler:
         B       Abort_Handler
         
 IRQ_Handler:
-        B       IRQ_Handler
-
-
-        
-FIQ_Handler:
-        B       FIQ_Handler
+    //print out message
+    ldr r5, =UART0_BASE
+    ldr r6, =IRQMsg
+morechar2:
+    ldr r7, [r6]
+    cmp r7, #0
+    beq lastchar2
+    str r7, [r5]
+    add r6, r6, #1
+waitchar2:
+    ldr r7, [r5, #0x18]
+    and r7, #0x40
+    bne waitchar2
+    b   morechar2
+lastchar2:
+    SUBS PC, R14, #4 //return
 
     // halt
 halt:
