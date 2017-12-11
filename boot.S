@@ -7,6 +7,8 @@ IRQMsg:
 .asciz "IRQ triggered"
 SWIMsg:
 .asciz "SWI triggered"
+UndefinedMsg:
+.asciz "Undefined triggered"
 PrefetchMsg:
 .asciz "Prefetch triggered"
 AbortMsg:
@@ -31,7 +33,7 @@ _start:
     ldr pc,=Abort_Handler
     NOP                             // Reserved vector
     ldr pc,=IRQ_Handler
-    //FIQ handler ideally here so that can be serviced quicker avoiding an extra jump
+    //FIQ handler should ideally be here so that can be serviced quicker avoiding an extra jump
 FIQ_Handler:
     //print out message
     ldr r5, =UART0_BASE
@@ -80,7 +82,22 @@ done:
 // They are set up here for completeness.
 
 Undefined_Handler:
-        B       Undefined_Handler
+    //print out message
+    ldr r5, =UART0_BASE
+    ldr r6, UndefinedMsgAddr
+morechar6:
+    mov r7, #0
+    ldrb r7, [r6], #1
+    strb r7, [r5]
+    cmp r7, #0
+    beq lastchar6
+waitchar6:
+    ldr r7, [r5, #0x18]
+    and r7, #0x40
+    beq waitchar6
+    b   morechar6
+lastchar6:
+    MOVS PC,R14
 
 SWI_Handler:
     //print out message
@@ -169,6 +186,7 @@ IRQMsgAddr : .word IRQMsg
 SWIMsgAddr : .word SWIMsg
 FIQMsgAddr : .word FIQMsg
 PrefetchMsgAddr : .word PrefetchMsg
+UndefinedMsgAddr : .word UndefinedMsg
 AbortMsgAddr : .word AbortMsg
 
 .end
