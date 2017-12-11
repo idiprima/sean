@@ -5,6 +5,13 @@ FIQMsg:
 .asciz "FIQ triggered"
 IRQMsg:
 .asciz "IRQ triggered"
+SWIMsg:
+.asciz "SWI triggered"
+PrefetchMsg:
+.asciz "Prefetch triggered"
+AbortMsg:
+.asciz "Abort triggered"
+
 // To keep this in the first portion of the binary.
 .section ".text.boot"
  
@@ -24,21 +31,21 @@ _start:
     ldr pc,=Abort_Handler
     NOP                             // Reserved vector
     ldr pc,=IRQ_Handler
-    //FIQ handler ideally here so that can be serviced quicker avoiding a jump
+    //FIQ handler ideally here so that can be serviced quicker avoiding an extra jump
 FIQ_Handler:
     //print out message
     ldr r5, =UART0_BASE
-    ldr r6, =FIQMsg
+    ldr r6, FIQMsgAddr
 morechar1:
-    ldr r7, [r6]
+    mov r7, #0
+    ldrb r7, [r6], #1
+    strb r7, [r5]
     cmp r7, #0
     beq lastchar1
-    str r7, [r5]
-    add r6, r6, #1
 waitchar1:
     ldr r7, [r5, #0x18]
     and r7, #0x40
-    bne waitchar1
+    beq waitchar1
     b   morechar1
 lastchar1:
     SUBS PC, R14, #4 //return
@@ -46,7 +53,6 @@ lastchar1:
 Reset_Handler:        
     // Setup the stack.
     mov sp, #0x8000
- 
 
     // Zero out bss.
     ldr r4, =__bss_start
@@ -77,30 +83,79 @@ Undefined_Handler:
         B       Undefined_Handler
 
 SWI_Handler:
+    //print out message
+    ldr r5, =UART0_BASE
+    ldr r6, SWIMsgAddr
+morechar3:
+    mov r7, #0
+    ldrb r7, [r6], #1
+    strb r7, [r5]
+    cmp r7, #0
+    beq lastchar3
+waitchar3:
+    ldr r7, [r5, #0x18]
+    and r7, #0x40
+    beq waitchar3
+    b   morechar3
+lastchar3:
+/*  
+    //use this to jump to your swi handler routine, r0 take the argument to the swi call
     mov r0, #0x21
-    //ldr r2, =sw_irq
     blx sw_irq
-    MOVS PC,R14
+*/
+    MOVS PC,R14 //return
 
 Prefetch_Handler:
-        B       Prefetch_Handler
+    //print out message
+    ldr r5, =UART0_BASE
+    ldr r6, PrefetchMsgAddr
+morechar4:
+    mov r7, #0
+    ldrb r7, [r6], #1
+    strb r7, [r5]
+    cmp r7, #0
+    beq lastchar4
+waitchar4:
+    ldr r7, [r5, #0x18]
+    and r7, #0x40
+    beq waitchar4
+    b   morechar4
+lastchar4:
+    SUBS PC,R14,#4
+
 Abort_Handler:
-        B       Abort_Handler
-        
+    //print out message
+    ldr r5, =UART0_BASE
+    ldr r6, AbortMsgAddr
+morechar5:
+    mov r7, #0
+    ldrb r7, [r6], #1
+    strb r7, [r5]
+    cmp r7, #0
+    beq lastchar5
+waitchar5:
+    ldr r7, [r5, #0x18]
+    and r7, #0x40
+    beq waitchar5
+    b   morechar5
+lastchar5:
+    SUBS PC,R14,#4 //if abort instruction does not need re-executing
+    SUBS PC,R14,#8 //if abort instruction needs re-executing
+
 IRQ_Handler:
     //print out message
     ldr r5, =UART0_BASE
-    ldr r6, =IRQMsg
+    ldr r6, IRQMsgAddr
 morechar2:
-    ldr r7, [r6]
+    mov r7, #0
+    ldrb r7, [r6], #1
+    strb r7, [r5]
     cmp r7, #0
     beq lastchar2
-    str r7, [r5]
-    add r6, r6, #1
 waitchar2:
     ldr r7, [r5, #0x18]
     and r7, #0x40
-    bne waitchar2
+    beq waitchar2
     b   morechar2
 lastchar2:
     SUBS PC, R14, #4 //return
@@ -109,3 +164,11 @@ lastchar2:
 halt:
     wfe
     b halt
+
+IRQMsgAddr : .word IRQMsg
+SWIMsgAddr : .word SWIMsg
+FIQMsgAddr : .word FIQMsg
+PrefetchMsgAddr : .word PrefetchMsg
+AbortMsgAddr : .word AbortMsg
+
+.end
