@@ -36,21 +36,29 @@ _start:
     //FIQ handler should ideally be here so that can be serviced quicker avoiding an extra jump
 FIQ_Handler:
     //print out message
-    ldr r5, =UART0_BASE
     ldr r6, FIQMsgAddr
-morechar1:
+    STMFD R13!,{R14}
+    bl PrintMsg
+    LDMFD R13!,{r14}
+    SUBS PC, R14, #4 //return
+
+//prints the message poined by r6 to null termination
+PrintMsg:
+    ldr r5, =UART0_BASE
+morechar:
     mov r7, #0
     ldrb r7, [r6], #1
     strb r7, [r5]
     cmp r7, #0
-    beq lastchar1
-waitchar1:
+    beq lastchar
+waitchar:
     ldr r7, [r5, #0x18]
     and r7, #0x40
-    beq waitchar1
-    b   morechar1
-lastchar1:
-    SUBS PC, R14, #4 //return
+    beq waitchar
+    b   morechar
+lastchar:
+    mov pc, lr
+    
 
 Reset_Handler:        
     // Setup the stack.
@@ -83,38 +91,18 @@ done:
 
 Undefined_Handler:
     //print out message
-    ldr r5, =UART0_BASE
     ldr r6, UndefinedMsgAddr
-morechar6:
-    mov r7, #0
-    ldrb r7, [r6], #1
-    strb r7, [r5]
-    cmp r7, #0
-    beq lastchar6
-waitchar6:
-    ldr r7, [r5, #0x18]
-    and r7, #0x40
-    beq waitchar6
-    b   morechar6
-lastchar6:
+    STMFD R13!,{R14}
+    bl PrintMsg
+    LDMFD R13!,{r14}
     MOVS PC,R14
 
 SWI_Handler:
     //print out message
-    ldr r5, =UART0_BASE
     ldr r6, SWIMsgAddr
-morechar3:
-    mov r7, #0
-    ldrb r7, [r6], #1
-    strb r7, [r5]
-    cmp r7, #0
-    beq lastchar3
-waitchar3:
-    ldr r7, [r5, #0x18]
-    and r7, #0x40
-    beq waitchar3
-    b   morechar3
-lastchar3:
+    STMFD R13!,{R14}
+    bl PrintMsg
+    LDMFD R13!,{r14}
 /*  
     //use this to jump to your swi handler routine, r0 take the argument to the swi call
     mov r0, #0x21
@@ -124,57 +112,27 @@ lastchar3:
 
 Prefetch_Handler:
     //print out message
-    ldr r5, =UART0_BASE
     ldr r6, PrefetchMsgAddr
-morechar4:
-    mov r7, #0
-    ldrb r7, [r6], #1
-    strb r7, [r5]
-    cmp r7, #0
-    beq lastchar4
-waitchar4:
-    ldr r7, [r5, #0x18]
-    and r7, #0x40
-    beq waitchar4
-    b   morechar4
-lastchar4:
+    STMFD R13!,{R14}
+    bl PrintMsg
+    LDMFD R13!,{r14}
     SUBS PC,R14,#4
 
 Abort_Handler:
     //print out message
-    ldr r5, =UART0_BASE
     ldr r6, AbortMsgAddr
-morechar5:
-    mov r7, #0
-    ldrb r7, [r6], #1
-    strb r7, [r5]
-    cmp r7, #0
-    beq lastchar5
-waitchar5:
-    ldr r7, [r5, #0x18]
-    and r7, #0x40
-    beq waitchar5
-    b   morechar5
-lastchar5:
+    STMFD R13!,{R14}
+    bl PrintMsg
+    LDMFD R13!,{r14}
     SUBS PC,R14,#4 //if abort instruction does not need re-executing
     SUBS PC,R14,#8 //if abort instruction needs re-executing
 
 IRQ_Handler:
     //print out message
-    ldr r5, =UART0_BASE
     ldr r6, IRQMsgAddr
-morechar2:
-    mov r7, #0
-    ldrb r7, [r6], #1
-    strb r7, [r5]
-    cmp r7, #0
-    beq lastchar2
-waitchar2:
-    ldr r7, [r5, #0x18]
-    and r7, #0x40
-    beq waitchar2
-    b   morechar2
-lastchar2:
+    STMFD R13!,{R14}
+    bl PrintMsg
+    LDMFD R13!,{r14}
     SUBS PC, R14, #4 //return
 
     // halt

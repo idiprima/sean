@@ -33,7 +33,7 @@ $(BOOTOBJ) : $(BOOTSRC)
 	$(CPP) $(ASMFLAGS) -c $(BOOTSRC) -o $(BOOTOBJ)
 
 all:	$(TARGET)
-	echo "qemu-system-arm -m 256 -M raspi2 -serial stdio -kernel kernel.elf"
+	@echo "qemu-system-arm -m 256 -M raspi2 -serial stdio -kernel kernel.elf"
 
 clean:
 	rm -f $(BOOTOBJ) $(KERNELOBJ) $(TARGET) $(KERNELELF)
